@@ -1,6 +1,6 @@
 # Proof of Concept: Design of Backend Middleware
-# 概念実証：バックエンド・ミドルウェアの設計
-# 概念驗證：後端系統設計
+概念実証：バックエンド・ミドルウェアの設計
+概念驗證：後端系統設計
 
 This Repository hosts two middleware component written in Ruby and Node.js.
 このリポジトリは、Node.jsとRubyでプログラムされた2ミドルウェアが含まれています。
@@ -30,17 +30,18 @@ REST API中間件。
 
 1. Clone the Repository
 2. Open at least 2 terminal windows
-  * Terminal 1
+
+* Terminal 1
 ```shell
 node ./node/index.js
 ```
-  * Terminal 2
+* Terminal 2
 ```shell
 cd ruby
 bundler install
 ruby index.js
 ```
-  * Terminal 3
+* Terminal 3 and further
 ```shell
 ruby ./ruby/index.js
 ```
@@ -56,3 +57,6 @@ ruby ./ruby/index.js
 
 ## License
 [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+## Acknowledgements
+* Authors of RabbitMQ Tutorials
