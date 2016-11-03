@@ -1,23 +1,28 @@
 # Proof of Concept: Design of Backend Middleware
-概念実証：バックエンド・ミドルウェアの設計
-概念驗證：後端系統設計
+* 概念実証：バックエンド・ミドルウェアの設計
+* 概念驗證：後端系統設計
 
 This Repository hosts two middleware component written in Ruby and Node.js.
+
 このリポジトリは、Node.jsとRubyでプログラムされた2ミドルウェアが含まれています。
+
 此存儲庫包含兩個使用Node.js和Ruby編寫的中間件。
 
 ### Ruby
 Middleware that execute tasks.
-タスク実行のミドルウェア。
-執行任務的中間件。
-
 Currently, it just echoes back the message.
+
+タスク実行のミドルウェア。
 現在、メッセージを返信よりも何もできません。
+
+執行任務的中間件。
 現時它只能回傳接收到的信息。
 
 ### Node.js
 Middleware that act as REST API.
+
 REST APIのミドルウェア。
+
 REST API中間件。
 
 ## Requirements // システム必要条件 // 系統要求
