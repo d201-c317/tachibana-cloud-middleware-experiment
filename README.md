@@ -1,6 +1,6 @@
-# Proof of Concept: Design of Backend Middleware
-* 概念実証：バックエンド・ミドルウェアの設計
-* 概念驗證：後端系統設計
+## Proof of Concept: Design of Backend Middleware
+## 概念実証：バックエンド・ミドルウェアの設計
+## 概念驗證：後端系統設計
 
 This Repository hosts two middleware component written in Ruby and Node.js.
 
@@ -8,7 +8,7 @@ This Repository hosts two middleware component written in Ruby and Node.js.
 
 此存儲庫包含兩個使用Node.js和Ruby編寫的中間件。
 
-### Ruby
+#### Ruby
 Middleware that execute tasks.
 Currently, it just echoes back the message.
 
@@ -18,43 +18,43 @@ Currently, it just echoes back the message.
 執行任務的中間件。
 現時它只能回傳接收到的信息。
 
-### Node.js
+#### Node.js
 Middleware that act as REST API.
 
 REST APIのミドルウェア。
 
 REST API中間件。
 
-## Requirements // システム必要条件 // 系統要求
+### Requirements // システム必要条件 // 系統要求
 * Ruby 2.3.0 w/ Bundler
 * Node.js 6.3.1 w/ npm
 * RabbitMQ
 * Any REST Client
+* Linux
 
-## How To use? // 使い方 (英語のみ) // 食用方法 (English Only)
+### How To use? // 使い方 (英語のみ) // 食用方法 (English Only)
 
 1. Clone the Repository
 2. Open at least 2 terminal windows
-
-* Terminal 1
-```shell
+ * Terminal 1
+```
+npm install
 node ./node/index.js
 ```
-* Terminal 2
-```shell
+ * Terminal 2
+```
 cd ruby
 bundler install
 ruby index.js
 ```
-* Terminal 3 and further
-```shell
+ * Terminal 3 and further
+```
 ruby ./ruby/index.js
 ```
-
 3. Use HTTP POST method in your REST Client, Send this JSON payload as Raw to `http://127.0.0.1:3000/send`
-```javascript
+```
 {"message":"foo"}
-```  
+```
 
 4. Use any Web Browser, navigate to `http://127.0.0.1:3000/history`, you will see history of responded messages
 
