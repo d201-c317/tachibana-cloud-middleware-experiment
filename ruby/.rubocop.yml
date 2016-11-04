@@ -1,0 +1,9 @@
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/EmptyLines:
+  Enabled: false
+
+Metrics/LineLength:
+  Enabled: false
+
