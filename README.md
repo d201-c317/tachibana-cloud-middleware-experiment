@@ -36,18 +36,18 @@ REST API中間件。
 
 1. Clone the Repository
 2. Open at least 2 terminal windows
- * Terminal 1
+* Terminal 1
 ```
 npm install
 node ./node/index.js
 ```
- * Terminal 2
+* Terminal 2
 ```
 cd ruby
 bundler install
 ruby index.js
 ```
- * Terminal 3 and further
+* Terminal 3 and further
 ```
 ruby ./ruby/index.js
 ```
@@ -59,6 +59,8 @@ ruby ./ruby/index.js
 4. Use any Web Browser, navigate to `http://127.0.0.1:3000/history`, you will see history of responded messages
 
 5. To empty the history, navigate to `http://127.0.0.1:3000/clear`
+
+![Screenshot](shot.png?raw=true "Screenshot")
 
 ## License
 [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-nc-sa/4.0/)

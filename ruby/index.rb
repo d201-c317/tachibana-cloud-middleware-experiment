@@ -16,7 +16,7 @@ puts " [!] Waiting for messages in #{queue_in.name}. To exit press CTRL+C"
 
 queue_in.subscribe(block: true) do |_, properties, body|
   puts " [I] Received #{body} @ #{properties.correlation_id}"
-  msg = { message: body, taskid: properties.correlation_id, sysid: sysid }
-  channel.default_exchange.publish(JSON.generate(msg), routing_key: queue_out.name, correlation_id: properties.correlation_id)
+  msg = JSON.generate({ message: body, taskid: properties.correlation_id, sysid: sysid })
+  channel.default_exchange.publish(msg, routing_key: queue_out.name, correlation_id: properties.correlation_id)
   puts " [O] Sent #{msg}"
 end

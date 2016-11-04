@@ -16,7 +16,7 @@ app.listen(port);
 var history = [];
 var counter = 0;
 
-console.log(" [!] Waiting for messages via HTTP API. To exit press CTRL+C");
+console.log(" [!] Waiting for messages via HTTP API @ Port %s. To exit press CTRL+C", port);
 
 amqp.connect("amqp://localhost", function(err, conn) {
     conn.createChannel(function(err, ch) {
@@ -26,7 +26,7 @@ amqp.connect("amqp://localhost", function(err, conn) {
             history.push(messageContent);
 //          stack.push(messageContent);
             console.log(" [!] Message Payload : %s", messageContent.message);
-            console.log(" [!] Message Task id : %s", messageContent.taskID);
+            console.log(" [!] Message Task id : %s", messageContent.taskid);
             console.log(" [!] Message Server  : %s", messageContent.sysid);
             console.log(" [!] Message rel. ID : %s", msg.properties.correlationId.toString());
             console.log();
