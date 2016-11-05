@@ -40,18 +40,15 @@ REST API中間件。
 * Get MD5 Hash of the payload
 ```
 {"task":"hash","payload":"abc"}
-
 ```
 * Reverse the payload string (abc => cba)
 ```
 {"task":"rev","payload":"abc"}
-
 ```
 * Echo back the payload
 ```
 {"task":"echo","payload":"abc"}
 ```
-
 * Use any Web Browser, navigate to `http://127.0.0.1:3000/history`, you will see history of messages, with response
 * To empty the history, navigate to `http://127.0.0.1:3000/clear`
 
