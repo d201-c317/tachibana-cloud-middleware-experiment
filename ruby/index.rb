@@ -2,21 +2,83 @@
 
 require "bunny"
 require "json"
+require "digest/md5"
 
-connection = Bunny.new
-connection.start
+# Class: Rabbit
+# Function: to maintain a list of function to communicate with RabbitMQ via Bunny gem
+#   You Probably Don't wan't to touch this.
+class Rabbit
+  def initialize
+    @connection = Bunny.new
+    @connection.start
+    @channel = @connection.create_channel
+  end
 
-channel    = connection.create_channel
-queue_in   = channel.queue("in")
-queue_out  = channel.queue("out")
-prng       = Random.new
-sysid      = ENV["SYSID"] || prng.rand(100)
+  # Message Queue Listener and Job Dispatcher
+  def listen
+    puts " [!] Waiting for messages. To exit press CTRL+C"
+    queue_in.subscribe(block: true) do |_, properties, body|
+      puts " [I] Received #{properties.correlation_id}"
+      Thread.new { processor(body, properties.correlation_id) }
+    end
+  end
 
-puts " [!] Waiting for messages in #{queue_in.name}. To exit press CTRL+C"
+  # Message Queue Publisher
+  def publish(message, corr)
+    @channel.default_exchange.publish(message, routing_key: queue_out.name, correlation_id: corr)
+  end
 
-queue_in.subscribe(block: true) do |_, properties, body|
-  puts " [I] Received #{body} @ #{properties.correlation_id}"
-  msg = JSON.generate({ message: body, taskid: properties.correlation_id, sysid: sysid })
-  channel.default_exchange.publish(msg, routing_key: queue_out.name, correlation_id: properties.correlation_id)
-  puts " [O] Sent #{msg}"
+  # Close the Channel
+  def close
+    @channel.close
+  end
+
+  private
+
+  # Set up the incoming queue
+  def queue_in
+    @channel.queue("in")
+  end
+
+  # Set up the outgoing queue
+  def queue_out
+    @channel.queue("out")
+  end
 end
+
+# Class: Tools
+# Function: To maintain a set of functions.
+class Tools
+  # Generate Random Number
+  def random
+    prng = Random.new
+    prng.rand(100)
+  end
+
+  # MD5 Hash
+  def md5
+    Digest::MD5.new
+  end
+end
+
+def processor(message, msg_id)
+  rabbit = Rabbit.new
+  tools  = Tools.new
+  parsed = JSON.parse(message)
+  puts " [x] Task : #{parsed['task']}"
+  case parsed["task"]
+  when "echo"
+    payload = parsed["payload"]
+  when "hash"
+    payload = tools.md5.hexdigest(parsed["payload"])
+  when "rev"
+    payload = parsed["payload"].to_s.reverse!
+  end
+  msg = JSON.generate(payload: payload, seq: parsed["seq"], taskid: parsed["uuid"], sysid: tools.random)
+  rabbit.publish(msg, msg_id)
+  puts " [O] Sent @ #{msg_id}"
+  rabbit.close
+end
+
+rabbit = Rabbit.new
+rabbit.listen

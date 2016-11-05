@@ -10,13 +10,10 @@ This Repository hosts two middleware component written in Ruby and Node.js.
 
 #### Ruby
 Middleware that execute tasks.
-Currently, it just echoes back the message.
 
 タスク実行のミドルウェア。
-現在、メッセージを返信よりも何もできません。
 
 執行任務的中間件。
-現時它只能回傳接收到的信息。
 
 #### Node.js
 Middleware that act as REST API.
@@ -34,31 +31,29 @@ REST API中間件。
 
 ### How To use? // 使い方 (英語のみ) // 食用方法 (English Only)
 
-1. Clone the Repository
-2. Open at least 2 terminal windows
-* Terminal 1
+* Clone the Repository
+* Open at least 2 terminal windows
+ * Terminal 1 `npm install && node ./node/index.js`
+ * Terminal 2 `cd ruby && bundler install && ruby index.rb`
+ * Terminal 3 and further `ruby ./ruby/index.js`
+* Use HTTP POST method in your REST Client, Send a RAW payload as follows to `http://127.0.0.1:3000/send`
+* Get MD5 Hash of the payload
 ```
-npm install
-node ./node/index.js
+{"task":"hash","payload":"abc"}
+
 ```
-* Terminal 2
+* Reverse the payload string (abc => cba)
 ```
-cd ruby
-bundler install
-ruby index.js
+{"task":"rev","payload":"abc"}
+
 ```
-* Terminal 3 and further
+* Echo back the payload
 ```
-ruby ./ruby/index.js
-```
-3. Use HTTP POST method in your REST Client, Send this JSON payload as Raw to `http://127.0.0.1:3000/send`
-```
-{"message":"foo"}
+{"task":"echo","payload":"abc"}
 ```
 
-4. Use any Web Browser, navigate to `http://127.0.0.1:3000/history`, you will see history of responded messages
-
-5. To empty the history, navigate to `http://127.0.0.1:3000/clear`
+* Use any Web Browser, navigate to `http://127.0.0.1:3000/history`, you will see history of messages, with response
+* To empty the history, navigate to `http://127.0.0.1:3000/clear`
 
 ![Screenshot](shot.png?raw=true "Screenshot")
 

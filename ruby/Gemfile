@@ -4,3 +4,4 @@ source "https://rubygems.org"
 gem "bunny"
 gem "rubocop", require: false
 gem "json"
+gem "digest"
