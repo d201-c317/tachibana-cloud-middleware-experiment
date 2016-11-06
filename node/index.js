@@ -1,80 +1,106 @@
 #!/usr/bin/env node
-/*eslint-disable no-console */
+"use strict";
 
-const amqp = require("amqplib/callback_api");
-const uuid = require("node-uuid");
-const express = require("express");
-const bodyParser = require("body-parser");
-const app = express();
-
+var database = { counter: 0, data: [] };
 const port = process.env.PORT || 3000;
 
-app.use(bodyParser.json());
-app.listen(port);
+class Data {
 
-// var stack   = [];
-var history = [];
-var counter = 0;
+    static db() { return database; };
+    
+    static getOneItem(id) { return database.data[id]; }
 
-console.log(" [!] Waiting for messages via HTTP API @ Port %s. To exit press CTRL+C", port);
+    static addOneItem(object) { database.data[object.id] = object; }
 
-amqp.connect("amqp://localhost", function(err, conn) {
-    conn.createChannel(function(err, ch) {
-        ch.assertQueue("out", {durable: false});
-        ch.consume("out", function(msg) {
-            var messageContent = JSON.parse(msg.content.toString());
-            history[messageContent.seq].result = messageContent;
-//          stack.push(messageContent);
-            console.log(" [!] Message Payload : %s", messageContent.payload);
-            console.log(" [!] Message Task id : %s", messageContent.taskid);
-            console.log(" [!] Message Server  : %s", messageContent.sysid);
-            console.log(" [!] Message rel. ID : %s", msg.properties.correlationId.toString());
-            console.log();
-        }, {noAck: true});
-    });
-});
+    static setResult(object) { database.data[object.seq].result = object; }
 
-function writeMessage (msg) {
-    history[msg.seq] = msg;
-    message = JSON.stringify(msg);
-    amqp.connect("amqp://localhost", function(err, conn) {
-        conn.createChannel(function(err, ch) {
-            ch.assertQueue("in", {durable: false});
-            ch.sendToQueue("in", new Buffer.from(message), { correlationId: msg.uuid });
-            console.log(" [x] Sent %s", msg.uuid);
-        });
-    });
-    return true;
+    static setStatus(id, value) { database.data[id].sent = value; }
+
+    static reset() { database = { counter: 0, data: [] }; }
+
+    static uuid() { return require("node-uuid").v1(); }
+    
+    static targetQueue() { return "in"; }
+
+    static listenQueue() { return "out"; }
+
 }
 
-/* Reserved Method, it just show a stack of response and clear
- * app.get("/get", function(req, res){
- *  res.json(stack);
- *  stack = [];
- *});
- */
+class Rabbit {
+    constructor () { 
+        this.amqp = require("amqplib").connect("amqp://localhost");
+    }
 
-app.get("/clear", function(req, res) {
-    history = [];
-    counter = 0;
-    res.json({ message: "Done" });
-});
+    writeMessage (msg) {
+        Data.addOneItem(msg);
+        this.amqp.then(function(conn) {
+            return conn.createChannel();
+        }).then(function(channel) {
+            return channel.assertQueue(Data.targetQueue()).then(function() {
+                channel.sendToQueue(Data.targetQueue(), new Buffer.from(JSON.stringify(msg)), { correlationId: msg.uuid });
+                console.log(" [x] Sent %s", msg.uuid);
+                return Data.setStatus(msg.id, true);
+            });
+        });
+    }
+    
+    receiveMessage () {
+        this.amqp.then(function(conn) {
+            return conn.createChannel();
+        }).then(function(channel) {
+            return channel.assertQueue(Data.listenQueue()).then(function() {
+                channel.consume(Data.listenQueue(), function(msg) {
+                    var msgContent = JSON.parse(msg.content.toString());
+                    console.log(" [!] Message Payload : %s", msgContent.payload);
+                    console.log(" [!] Message Task id : %s", msgContent.taskid);
+                    console.log(" [!] Message Server  : %s", msgContent.sysid);
+                    console.log(" [!] Message rel. ID : %s", msg.properties.correlationId.toString());
+                    console.log();
+                    return Data.setResult(msgContent);
+                }, { noAck: true });
+            });
+        });
+    }
+}
 
-app.get("/history", function(req, res){
-    res.json(history);
-});
+class App {
+    constructor (port) {
+        const express = require("express");
+        const bodyParser = require("body-parser");
+        this.app = express();
+        this.app.use(bodyParser.json());
+        this.app.listen(port);
+        console.log(" [!] Waiting for messages via HTTP API @ Port %s. To exit press CTRL+C", port);
+    }
 
-app.get("/history/:id", function(req, res){
-    res.json(history[req.params.id]);
-});
+    start () {
+        const rabbit = new Rabbit();
+        rabbit.receiveMessage();
 
-app.post("/send", function(req, res){
-    var uid = uuid.v1();
-    var task = req.body.task;
-    var payload = req.body.payload;
-    var message = { task: task, payload: payload, seq: counter, uuid: uid , result: {}};
+        this.app.get("/clear", function(req, res) {
+            Data.reset();            
+            res.json(Data.db());
+        });
 
-    res.json({counter: counter.toString()});
-    writeMessage(message);
-    counter++;
-});
+        this.app.get("/history", function(req, res){
+            res.json(Data.db());
+        });
+
+        this.app.get("/history/:id", function(req, res){
+            res.json(Data.getOneItem(req.params.id));
+        });
+
+        this.app.post("/send", function(req, res){
+            var task = req.body.task;
+            var payload = req.body.payload;
+            var message = { id: database.counter, task: task, payload: payload, uuid: Data.uuid() , sent: false, result: {}};
+
+            res.json(message);
+            rabbit.writeMessage(message);
+            database.counter++;
+        });
+    }
+}
+
+const app = new App(port);
+app.start();

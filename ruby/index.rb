@@ -37,12 +37,12 @@ class Rabbit
 
   # Set up the incoming queue
   def queue_in
-    @channel.queue("in")
+    @channel.queue("in", durable: true)
   end
 
   # Set up the outgoing queue
   def queue_out
-    @channel.queue("out")
+    @channel.queue("out", durable: true)
   end
 end
 
@@ -50,31 +50,35 @@ end
 # Function: To maintain a set of functions.
 class Tools
   # Generate Random Number
-  def random
+  def self.random
     prng = Random.new
     prng.rand(100)
   end
 
   # MD5 Hash
-  def md5
+  def self.md5
     Digest::MD5.new
+  end
+
+  # Reverse the string
+  def self.reverse(string)
+    string.to_s.reverse!
   end
 end
 
 def processor(message, msg_id)
   rabbit = Rabbit.new
-  tools  = Tools.new
   parsed = JSON.parse(message)
   puts " [x] Task : #{parsed['task']}"
   case parsed["task"]
   when "echo"
     payload = parsed["payload"]
   when "hash"
-    payload = tools.md5.hexdigest(parsed["payload"])
+    payload = Tools.md5.hexdigest(parsed["payload"])
   when "rev"
-    payload = parsed["payload"].to_s.reverse!
+    payload = Tools.reverse(parsed["payload"])
   end
-  msg = JSON.generate(payload: payload, seq: parsed["seq"], taskid: parsed["uuid"], sysid: tools.random)
+  msg = JSON.generate(payload: payload, seq: parsed["id"], taskid: parsed["uuid"], sysid: Tools.random)
   rabbit.publish(msg, msg_id)
   puts " [O] Sent @ #{msg_id}"
   rabbit.close

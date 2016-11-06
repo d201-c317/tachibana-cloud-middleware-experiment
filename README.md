@@ -23,7 +23,7 @@ REST APIのミドルウェア。
 REST API中間件。
 
 ### Requirements // システム必要条件 // 系統要求
-* Ruby 2.3.0 w/ Bundler
+* Ruby 2.3.1 w/ Bundler
 * Node.js 6.3.1 w/ npm
 * RabbitMQ
 * Any REST Client
