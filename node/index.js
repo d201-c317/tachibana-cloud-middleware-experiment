@@ -4,28 +4,26 @@
 var database = { counter: 0, data: [] };
 const port = process.env.PORT || 3000;
 
+/**
+ * Data
+ * To Access the imaginary JSON based database and some global data. It could be replaced by MongoDB.
+ */
 class Data {
-
-    static db() { return database; };
-    
-    static getOneItem(id) { return database.data[id]; }
-
-    static addOneItem(object) { database.data[object.id] = object; }
-
-    static setResult(object) { database.data[object.seq].result = object; }
-
-    static setStatus(id, value) { database.data[id].sent = value; }
-
-    static reset() { database = { counter: 0, data: [] }; }
-
-    static uuid() { return require("node-uuid").v1(); }
-    
-    static targetQueue() { return "in"; }
-
-    static listenQueue() { return "out"; }
-
+    static db() { return database; }                                            // Get Full DB
+    static getOneItem(id) { return database.data[id]; }                         // Get One item in DB
+    static addOneItem(object) { database.data[object.id] = object; }            // Add ONe Item in DB
+    static setResult(object) { database.data[object.seq].result = object; }     // Set Processed Result
+    static setStatus(id, value) { database.data[id].sent = value; }             // Set Delivery Status
+    static reset() { database = { counter: 0, data: [] }; }                     // Clean the Database
+    static uuid() { return require("node-uuid").v1(); }                         // generate UUID
+    static targetQueue() { return "in"; }                                       // get Queue Name
+    static listenQueue() { return "out"; }                                      // Same.
 }
 
+/**
+ * AMQP
+ * Don't Touch.
+ */
 class Rabbit {
     constructor () { 
         this.amqp = require("amqplib").connect("amqp://localhost");
@@ -63,6 +61,9 @@ class Rabbit {
     }
 }
 
+/** App
+ * The REST API.
+ */
 class App {
     constructor (port) {
         const express = require("express");
