@@ -8,6 +8,16 @@ This Repository hosts two middleware component written in Ruby and Node.js.
 
 此存儲庫包含兩個使用Node.js和Ruby編寫的中間件。
 
+---
+
+This version uses RabbitMQ as Message Broker.
+
+此版本使用 RabbitMQ 作為Message Broker。
+
+このバージョンは、Message Broker として RabbitMQ を使用しています。
+
+---
+
 #### Ruby
 Middleware that execute tasks.
 
@@ -38,17 +48,23 @@ REST API中間件。
  * Terminal 3 and further `ruby ./ruby/index.js`
 * Use HTTP POST method in your REST Client, Send a RAW payload as follows to `http://127.0.0.1:3000/send`
 * Get MD5 Hash of the payload
+
 ```
 {"task":"hash","payload":"abc"}
 ```
+
 * Reverse the payload string (abc => cba)
+
 ```
 {"task":"rev","payload":"abc"}
 ```
+
 * Echo back the payload
+
 ```
 {"task":"echo","payload":"abc"}
 ```
+
 * Use any Web Browser, navigate to `http://127.0.0.1:3000/history`, you will see history of messages, with response
 * To empty the history, navigate to `http://127.0.0.1:3000/clear`
 

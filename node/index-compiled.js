@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+
 "use strict";
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -8,6 +9,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var database = { counter: 0, data: [] };
 var port = process.env.PORT || 3000;
+var AMQP = require("amqplib");
+var AURI = "amqp://localhost";
 
 /**
  * Data
@@ -87,42 +90,49 @@ var Data = function () {
 var Rabbit = function () {
     function Rabbit() {
         _classCallCheck(this, Rabbit);
-
-        this.amqp = require("amqplib").connect("amqp://localhost");
     }
 
-    _createClass(Rabbit, [{
+    _createClass(Rabbit, null, [{
         key: "writeMessage",
         value: function writeMessage(msg) {
             Data.addOneItem(msg);
-            this.amqp.then(function (conn) {
-                return conn.createChannel();
-            }).then(function (channel) {
-                return channel.assertQueue(Data.targetQueue()).then(function () {
-                    channel.sendToQueue(Data.targetQueue(), new Buffer.from(JSON.stringify(msg)), { correlationId: msg.uuid });
-                    console.log(" [x] Sent %s", msg.uuid);
-                    return Data.setStatus(msg.id, true);
+            AMQP.connect(AURI).then(function (conn) {
+                return conn.createChannel().then(function (ch) {
+                    var q = ch.assertQueue(Data.targetQueue());
+                    return q.then(function () {
+                        ch.sendToQueue(Data.targetQueue(), new Buffer.from(JSON.stringify(msg)), { correlationId: msg.uuid });
+                        console.log(" [x] SENT @ %s", msg.uuid);
+                        Data.setStatus(msg.id, true);
+                        return ch.close();
+                    });
+                }).finally(function () {
+                    conn.close();
                 });
-            });
+            }).catch(console.warn);
         }
     }, {
         key: "receiveMessage",
         value: function receiveMessage() {
-            this.amqp.then(function (conn) {
-                return conn.createChannel();
-            }).then(function (channel) {
-                return channel.assertQueue(Data.listenQueue()).then(function () {
-                    channel.consume(Data.listenQueue(), function (msg) {
-                        var msgContent = JSON.parse(msg.content.toString());
-                        console.log(" [!] Message Payload : %s", msgContent.payload);
-                        console.log(" [!] Message Task id : %s", msgContent.taskid);
-                        console.log(" [!] Message Server  : %s", msgContent.sysid);
-                        console.log(" [!] Message rel. ID : %s", msg.properties.correlationId.toString());
-                        console.log();
-                        return Data.setResult(msgContent);
-                    }, { noAck: true });
+            AMQP.connect(AURI).then(function (conn) {
+                process.once("SIGINT", function () {
+                    conn.close();
                 });
-            });
+                return conn.createChannel().then(function (ch) {
+                    var q = ch.assertQueue(Data.listenQueue());
+
+                    q = q.then(function () {
+                        ch.consume(Data.listenQueue(), function (msg) {
+                            var msgContent = JSON.parse(msg.content.toString());
+                            console.log(" [*] RECV @ %s", msg.properties.correlationId.toString());
+                            return Data.setResult(msgContent);
+                        }, { noAck: true });
+                    });
+
+                    return q.then(function () {
+                        console.log(" [!] Waiting for messages via HTTP API @ Port %s. To exit press CTRL+C", port);
+                    });
+                });
+            }).catch(console.warn);
         }
     }]);
 
@@ -143,14 +153,12 @@ var App = function () {
         this.app = express();
         this.app.use(bodyParser.json());
         this.app.listen(port);
-        console.log(" [!] Waiting for messages via HTTP API @ Port %s. To exit press CTRL+C", port);
     }
 
     _createClass(App, [{
         key: "start",
         value: function start() {
-            var rabbit = new Rabbit();
-            rabbit.receiveMessage();
+            Rabbit.receiveMessage();
 
             this.app.get("/clear", function (req, res) {
                 Data.reset();
@@ -171,7 +179,7 @@ var App = function () {
                 var message = { id: database.counter, task: task, payload: payload, uuid: Data.uuid(), sent: false, result: {} };
 
                 res.json(message);
-                rabbit.writeMessage(message);
+                Rabbit.writeMessage(message);
                 database.counter++;
             });
         }

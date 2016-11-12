@@ -1,23 +1,26 @@
 #!/usr/bin/env node
+
 "use strict";
 
 var database = { counter: 0, data: [] };
 const port = process.env.PORT || 3000;
+const AMQP = require("amqplib");
+const AURI = "amqp://localhost";
 
 /**
  * Data
  * To Access the imaginary JSON based database and some global data. It could be replaced by MongoDB.
  */
 class Data {
-    static db() { return database; }                                            // Get Full DB
-    static getOneItem(id) { return database.data[id]; }                         // Get One item in DB
-    static addOneItem(object) { database.data[object.id] = object; }            // Add ONe Item in DB
-    static setResult(object) { database.data[object.seq].result = object; }     // Set Processed Result
-    static setStatus(id, value) { database.data[id].sent = value; }             // Set Delivery Status
-    static reset() { database = { counter: 0, data: [] }; }                     // Clean the Database
-    static uuid() { return require("node-uuid").v1(); }                         // generate UUID
-    static targetQueue() { return "in"; }                                       // get Queue Name
-    static listenQueue() { return "out"; }                                      // Same.
+    static db() { return database; } // Get Full DB
+    static getOneItem(id) { return database.data[id]; } // Get One item in DB
+    static addOneItem(object) { database.data[object.id] = object; } // Add ONe Item in DB
+    static setResult(object) { database.data[object.seq].result = object; } // Set Processed Result
+    static setStatus(id, value) { database.data[id].sent = value; } // Set Delivery Status
+    static reset() { database = { counter: 0, data: [] }; } // Clean the Database
+    static uuid() { return require("node-uuid").v1(); } // generate UUID
+    static targetQueue() { return "in"; } // get Queue Name
+    static listenQueue() { return "out"; } // Same.
 }
 
 /**
@@ -25,39 +28,44 @@ class Data {
  * Don't Touch.
  */
 class Rabbit {
-    constructor () { 
-        this.amqp = require("amqplib").connect("amqp://localhost");
+    static writeMessage(msg) {
+        Data.addOneItem(msg);
+        AMQP.connect(AURI).then(function(conn) {
+            return conn.createChannel().then(function(ch) {
+                const q = ch.assertQueue(Data.targetQueue());
+                return q.then(function() {
+                    ch.sendToQueue(Data.targetQueue(), new Buffer.from(JSON.stringify(msg)), { correlationId: msg.uuid });
+                    console.log(" [x] SENT @ %s", msg.uuid);
+                    Data.setStatus(msg.id, true);
+                    return ch.close();
+                });
+            }).finally(function() {
+                conn.close();
+            });
+        }).catch(console.warn);
     }
 
-    writeMessage (msg) {
-        Data.addOneItem(msg);
-        this.amqp.then(function(conn) {
-            return conn.createChannel();
-        }).then(function(channel) {
-            return channel.assertQueue(Data.targetQueue()).then(function() {
-                channel.sendToQueue(Data.targetQueue(), new Buffer.from(JSON.stringify(msg)), { correlationId: msg.uuid });
-                console.log(" [x] Sent %s", msg.uuid);
-                return Data.setStatus(msg.id, true);
+    static receiveMessage() {
+        AMQP.connect(AURI).then(function(conn) {
+            process.once("SIGINT", function() {
+                conn.close();
             });
-        });
-    }
-    
-    receiveMessage () {
-        this.amqp.then(function(conn) {
-            return conn.createChannel();
-        }).then(function(channel) {
-            return channel.assertQueue(Data.listenQueue()).then(function() {
-                channel.consume(Data.listenQueue(), function(msg) {
-                    var msgContent = JSON.parse(msg.content.toString());
-                    console.log(" [!] Message Payload : %s", msgContent.payload);
-                    console.log(" [!] Message Task id : %s", msgContent.taskid);
-                    console.log(" [!] Message Server  : %s", msgContent.sysid);
-                    console.log(" [!] Message rel. ID : %s", msg.properties.correlationId.toString());
-                    console.log();
-                    return Data.setResult(msgContent);
-                }, { noAck: true });
+            return conn.createChannel().then(function(ch) {
+                var q = ch.assertQueue(Data.listenQueue());
+
+                q = q.then(function() {
+                    ch.consume(Data.listenQueue(), function(msg) {
+                        var msgContent = JSON.parse(msg.content.toString());
+                        console.log(" [*] RECV @ %s", msg.properties.correlationId.toString());
+                        return Data.setResult(msgContent);
+                    }, { noAck: true });
+                });
+
+                return q.then(function() {
+                    console.log(" [!] Waiting for messages via HTTP API @ Port %s. To exit press CTRL+C", port);
+                });
             });
-        });
+        }).catch(console.warn);
     }
 }
 
@@ -65,39 +73,37 @@ class Rabbit {
  * The REST API.
  */
 class App {
-    constructor (port) {
+    constructor(port) {
         const express = require("express");
         const bodyParser = require("body-parser");
         this.app = express();
         this.app.use(bodyParser.json());
         this.app.listen(port);
-        console.log(" [!] Waiting for messages via HTTP API @ Port %s. To exit press CTRL+C", port);
     }
 
-    start () {
-        const rabbit = new Rabbit();
-        rabbit.receiveMessage();
+    start() {
+        Rabbit.receiveMessage();
 
         this.app.get("/clear", function(req, res) {
-            Data.reset();            
+            Data.reset();
             res.json(Data.db());
         });
 
-        this.app.get("/history", function(req, res){
+        this.app.get("/history", function(req, res) {
             res.json(Data.db());
         });
 
-        this.app.get("/history/:id", function(req, res){
+        this.app.get("/history/:id", function(req, res) {
             res.json(Data.getOneItem(req.params.id));
         });
 
-        this.app.post("/send", function(req, res){
+        this.app.post("/send", function(req, res) {
             var task = req.body.task;
             var payload = req.body.payload;
-            var message = { id: database.counter, task: task, payload: payload, uuid: Data.uuid() , sent: false, result: {}};
+            var message = { id: database.counter, task: task, payload: payload, uuid: Data.uuid(), sent: false, result: {} };
 
             res.json(message);
-            rabbit.writeMessage(message);
+            Rabbit.writeMessage(message);
             database.counter++;
         });
     }

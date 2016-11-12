@@ -9,7 +9,7 @@ require "digest/md5"
 #   You Probably Don't wan't to touch this.
 class Rabbit
   def initialize
-    @connection = Bunny.new
+    @connection = Bunny.new("amqp://localhost")
     @connection.start
     @channel = @connection.create_channel
   end
@@ -18,7 +18,7 @@ class Rabbit
   def listen
     puts " [!] Waiting for messages. To exit press CTRL+C"
     queue_in.subscribe(block: true) do |_, properties, body|
-      puts " [I] Received #{properties.correlation_id}"
+      puts " [*] RECV @ #{properties.correlation_id}"
       Thread.new { processor(body, properties.correlation_id) }
     end
   end
@@ -26,11 +26,9 @@ class Rabbit
   # Message Queue Publisher
   def publish(message, corr)
     @channel.default_exchange.publish(message, routing_key: queue_out.name, correlation_id: corr)
-  end
-
-  # Close the Channel
-  def close
+    puts " [x] SENT @ #{corr}"
     @channel.close
+    @connection.close
   end
 
   private
@@ -77,11 +75,11 @@ def processor(message, msg_id)
     payload = Tools.md5.hexdigest(parsed["payload"])
   when "rev"
     payload = Tools.reverse(parsed["payload"])
+  else
+    Thread.exit
   end
   msg = JSON.generate(payload: payload, seq: parsed["id"], taskid: parsed["uuid"], sysid: Tools.random)
   rabbit.publish(msg, msg_id)
-  puts " [O] Sent @ #{msg_id}"
-  rabbit.close
 end
 
 rabbit = Rabbit.new
