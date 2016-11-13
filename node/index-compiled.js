@@ -9,12 +9,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var database = { counter: 0, data: [] };
 var port = process.env.PORT || 3000;
-var AMQP = require("amqplib");
-var AURI = "amqp://localhost";
 
 /**
- * Data
- * To Access the imaginary JSON based database and some global data. It could be replaced by MongoDB.
+ * Database Emulation
+ * 
+ * @class Data
  */
 
 var Data = function () {
@@ -24,83 +23,172 @@ var Data = function () {
 
     _createClass(Data, null, [{
         key: "db",
+
+        /**
+         * Get Database
+         * 
+         * @static
+         * @returns database
+         * 
+         * @memberOf Data
+         */
         value: function db() {
             return database;
-        } // Get Full DB
+        }
+
+        /**
+         * Get one item from database
+         * 
+         * @static
+         * @param {number} id job sequence
+         * @returns database item
+         * 
+         * @memberOf Data
+         */
 
     }, {
         key: "getOneItem",
         value: function getOneItem(id) {
             return database.data[id];
-        } // Get One item in DB
+        }
+
+        /**
+         * Add one job to database
+         * 
+         * @static
+         * @param {any} object Job object
+         * @returns {void}
+         * @memberOf Data
+         */
 
     }, {
         key: "addOneItem",
         value: function addOneItem(object) {
             database.data[object.id] = object;
-        } // Add ONe Item in DB
+        }
+
+        /**
+         * Store the result of the job.
+         * 
+         * @static
+         * @param {any} object Result object
+         * 
+         * @memberOf Data
+         */
 
     }, {
         key: "setResult",
         value: function setResult(object) {
             database.data[object.seq].result = object;
-        } // Set Processed Result
+        }
+
+        /**
+         * Set the delivery status of the item.
+         * 
+         * @static
+         * @param {number} id Job seq
+         * @param {any} value Delivery status
+         * @returns {void}
+         * @memberOf Data
+         */
 
     }, {
         key: "setStatus",
         value: function setStatus(id, value) {
             database.data[id].sent = value;
-        } // Set Delivery Status
+        }
+
+        /**
+         * Clear the Database
+         * 
+         * @static
+         * @returns {void}
+         * @memberOf Data
+         */
 
     }, {
         key: "reset",
         value: function reset() {
             database = { counter: 0, data: [] };
-        } // Clean the Database
-
-    }, {
-        key: "uuid",
-        value: function uuid() {
-            return require("node-uuid").v1();
-        } // generate UUID
-
-    }, {
-        key: "targetQueue",
-        value: function targetQueue() {
-            return "in";
-        } // get Queue Name
-
-    }, {
-        key: "listenQueue",
-        value: function listenQueue() {
-            return "out";
-        } // Same.
-
+        }
     }]);
 
     return Data;
 }();
 
 /**
- * AMQP
- * Don't Touch.
+ * Common Tools
+ * 
+ * @class Tool
+ */
+
+
+var Tool = function () {
+    function Tool() {
+        _classCallCheck(this, Tool);
+    }
+
+    _createClass(Tool, null, [{
+        key: "uuid",
+
+        /**
+         * UUID Generator
+         * 
+         * @static
+         * @returns {string} UUID
+         * 
+         * @memberOf Tool
+         */
+        value: function uuid() {
+            return require("node-uuid").v1();
+        }
+    }]);
+
+    return Tool;
+}();
+
+/**
+ * AMQP Access
+ * 
+ * @class Rabbit
  */
 
 
 var Rabbit = function () {
+    /**
+     * Creates an instance of Rabbit.
+     * 
+     * @returns {void}
+     * @memberOf Rabbit
+     */
     function Rabbit() {
         _classCallCheck(this, Rabbit);
+
+        this.AMQP = require("amqplib");
+        this.AURI = "amqp://localhost";
+        this.target = "in";
+        this.listen = "out";
     }
 
-    _createClass(Rabbit, null, [{
+    /**
+     * Publish message
+     * 
+     * @param {any} msg message object
+     * @returns {void}
+     * @memberOf Rabbit
+     */
+
+
+    _createClass(Rabbit, [{
         key: "writeMessage",
         value: function writeMessage(msg) {
+            var target = this.target;
             Data.addOneItem(msg);
-            AMQP.connect(AURI).then(function (conn) {
+            this.AMQP.connect(this.AURI).then(function (conn) {
                 return conn.createChannel().then(function (ch) {
-                    var q = ch.assertQueue(Data.targetQueue());
+                    var q = ch.assertQueue(target);
                     return q.then(function () {
-                        ch.sendToQueue(Data.targetQueue(), new Buffer.from(JSON.stringify(msg)), { correlationId: msg.uuid });
+                        ch.sendToQueue(target, new Buffer.from(JSON.stringify(msg)), { correlationId: msg.uuid });
                         console.log(" [x] SENT @ %s", msg.uuid);
                         Data.setStatus(msg.id, true);
                         return ch.close();
@@ -110,24 +198,31 @@ var Rabbit = function () {
                 });
             }).catch(console.warn);
         }
+
+        /**
+         * message receiver
+         * 
+         * @returns {void}
+         * @memberOf Rabbit
+         */
+
     }, {
         key: "receiveMessage",
         value: function receiveMessage() {
-            AMQP.connect(AURI).then(function (conn) {
+            var listen = this.listen;
+            this.AMQP.connect(this.AURI).then(function (conn) {
                 process.once("SIGINT", function () {
                     conn.close();
                 });
                 return conn.createChannel().then(function (ch) {
-                    var q = ch.assertQueue(Data.listenQueue());
-
+                    var q = ch.assertQueue(listen);
                     q = q.then(function () {
-                        ch.consume(Data.listenQueue(), function (msg) {
+                        ch.consume(listen, function (msg) {
                             var msgContent = JSON.parse(msg.content.toString());
                             console.log(" [*] RECV @ %s", msg.properties.correlationId.toString());
                             return Data.setResult(msgContent);
                         }, { noAck: true });
                     });
-
                     return q.then(function () {
                         console.log(" [!] Waiting for messages via HTTP API @ Port %s. To exit press CTRL+C", port);
                     });
@@ -139,12 +234,21 @@ var Rabbit = function () {
     return Rabbit;
 }();
 
-/** App
- * The REST API.
+/**
+ * The API Core
+ * 
+ * @class App
  */
 
 
 var App = function () {
+    /**
+     * Creates an instance of API.
+     * 
+     * @param {number} port Port No.
+     * 
+     * @memberOf App
+     */
     function App(port) {
         _classCallCheck(this, App);
 
@@ -155,31 +259,59 @@ var App = function () {
         this.app.listen(port);
     }
 
+    /**
+     * Start the API
+     * 
+     * 
+     * @memberOf App
+     */
+
+
     _createClass(App, [{
         key: "start",
         value: function start() {
-            Rabbit.receiveMessage();
+            var rabbit = new Rabbit();
+            rabbit.receiveMessage();
 
+            /**
+             * GET /clear
+             * Empty the database.
+             */
             this.app.get("/clear", function (req, res) {
                 Data.reset();
                 res.json(Data.db());
             });
 
+            /**
+             * GET /history
+             * Get the list of jobs.
+             */
             this.app.get("/history", function (req, res) {
                 res.json(Data.db());
             });
 
+            /** 
+             * GET /history/:id
+             * Get the details of specific job 
+             * @param {number} id The job seq
+             */
             this.app.get("/history/:id", function (req, res) {
                 res.json(Data.getOneItem(req.params.id));
             });
 
+            /**
+             * POST /send
+             * Entry point of Job
+             * @param {string} task The task
+             * @param {string} payload The task payload
+             */
             this.app.post("/send", function (req, res) {
                 var task = req.body.task;
                 var payload = req.body.payload;
-                var message = { id: database.counter, task: task, payload: payload, uuid: Data.uuid(), sent: false, result: {} };
+                var message = { id: database.counter, task: task, payload: payload, uuid: Tool.uuid(), sent: false, result: {} };
 
                 res.json(message);
-                Rabbit.writeMessage(message);
+                rabbit.writeMessage(message);
                 database.counter++;
             });
         }
