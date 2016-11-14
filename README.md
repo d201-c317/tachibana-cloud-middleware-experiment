@@ -41,32 +41,22 @@ REST API中間件。
 
 ### How To use? // 使い方 (英語のみ) // 食用方法 (English Only)
 
-* Clone the Repository
-* Open at least 2 terminal windows
- * Terminal 1 `npm install && node ./node/index.js`
- * Terminal 2 `cd ruby && bundler install && ruby index.rb`
- * Terminal 3 and further `ruby ./ruby/index.js`
-* Use HTTP POST method in your REST Client, Send a RAW payload as follows to `http://127.0.0.1:3000/send`
-* Get MD5 Hash of the payload
+__To specify a remote RabbitMQ, prepend environment variable `AMQP_URI="amqp://your.rabbitmq.tld"` to `ruby index.rb` and `node index.js`, where `your.rabbitmq.tld` is the IP or domain name to your RabbitMQ Instance.__
 
-```
-{"task":"hash","payload":"abc"}
-```
+__To specify an alternative port of the API, prepend environment variable like `PORT=3000` to `node index.js`, where `3000` is the desired port number__
 
-* Reverse the payload string (abc => cba)
-
-```
-{"task":"rev","payload":"abc"}
-```
-
-* Echo back the payload
-
-```
-{"task":"echo","payload":"abc"}
-```
-
-* Use any Web Browser, navigate to `http://127.0.0.1:3000/history`, you will see history of messages, with response
-* To empty the history, navigate to `http://127.0.0.1:3000/clear`
+1. Clone the Repository
+2. Open at least 2 terminal windows
+ * Terminal 1 (REST API) `cd node` then `npm install` finally `node index.js`
+ * Terminal 2 `cd ruby` then `bundler install` finally `ruby index.rb`
+ * Terminal 3 and further `ruby index.js`
+3. Use HTTP POST method in your REST Client, Send a RAW payload as follows to `http://127.0.0.1:3000/send`
+ * Get MD5 Hash of the payload `{"task":"hash","payload":"abc"}`
+ * Reverse the payload string (abc => cba) `{"task":"rev","payload":"abc"}`
+ * Echo back the payload `{"task":"echo","payload":"abc"}`
+4. Use any Web Browser, navigate to `http://127.0.0.1:3000/history`, you will see history of messages, with response
+5. To empty the history, navigate to `http://127.0.0.1:3000/clear`
+6. To exit, Strike <kbd>CTRL</kbd>+<kbd>C</kbd> __TWICE__
 
 ![Screenshot](shot.png?raw=true "Screenshot")
 
@@ -75,3 +65,9 @@ REST API中間件。
 
 ## Acknowledgements
 * Authors of RabbitMQ Tutorials
+* Developer of [amqplib](https://github.com/squaremo/amqp.node)
+* Developer of [Bunny](https://github.com/ruby-amqp/bunny)
+
+## TODO
+* jRuby Version? (Migrate to March Hare)
+* REST API Server in other programming language?

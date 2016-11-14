@@ -9,7 +9,7 @@ require "digest/md5"
 #   You Probably Don't wan't to touch this.
 class Rabbit
   def initialize
-    @connection = Bunny.new("amqp://localhost")
+    @connection = Bunny.new(ENV["AMQP_URI"] || "amqp://localhost")
     @connection.start
     @channel = @connection.create_channel
   end
@@ -78,7 +78,7 @@ def processor(message, msg_id)
   else
     Thread.exit
   end
-  msg = JSON.generate(payload: payload, seq: parsed["id"], taskid: parsed["uuid"], sysid: Tools.random)
+  msg = JSON.generate(payload: payload, seq: parsed["id"], taskid: parsed["uuid"])
   rabbit.publish(msg, msg_id)
 end
 

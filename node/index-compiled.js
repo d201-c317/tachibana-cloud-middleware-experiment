@@ -165,7 +165,7 @@ var Rabbit = function () {
         _classCallCheck(this, Rabbit);
 
         this.AMQP = require("amqplib");
-        this.AURI = "amqp://localhost";
+        this.AURI = process.env.AMQP_URI || "amqp://localhost";
         this.target = "in";
         this.listen = "out";
     }
