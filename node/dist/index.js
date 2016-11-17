@@ -322,5 +322,4 @@ var App = function () {
 
 var app = new App(port);
 app.start();
-
-//# sourceMappingURL=index-compiled.js.map
+//# sourceMappingURL=index.js.map

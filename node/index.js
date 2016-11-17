@@ -161,10 +161,10 @@ class Rabbit {
                 conn.close();
             });
             return conn.createChannel().then(function(ch) {
-                var q = ch.assertQueue(listen);
+                let q = ch.assertQueue(listen);
                 q = q.then(function() {
                     ch.consume(listen, function(msg) {
-                        var msgContent = JSON.parse(msg.content.toString());
+                        let msgContent = JSON.parse(msg.content.toString());
                         console.log(" [*] RECV @ %s", msg.properties.correlationId.toString());
                         return Data.setResult(msgContent);
                     }, { noAck: true });
@@ -241,9 +241,9 @@ class App {
          * @param {string} payload The task payload
          */
         this.app.post("/send", function(req, res) {
-            var task = req.body.task;
-            var payload = req.body.payload;
-            var message = { id: database.counter, task: task, payload: payload, uuid: Tool.uuid(), sent: false, result: {} };
+            let task = req.body.task;
+            let payload = req.body.payload;
+            let message = { id: database.counter, task: task, payload: payload, uuid: Tool.uuid(), sent: false, result: {} };
 
             res.json(message);
             rabbit.writeMessage(message);
