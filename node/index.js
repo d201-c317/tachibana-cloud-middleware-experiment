@@ -2,6 +2,9 @@
 
 "use strict";
 
+const AMQP = require("amqplib");
+const Restify = require("restify");
+
 var database = { counter: 0, data: [] };
 const port = process.env.PORT || 3000;
 
@@ -15,7 +18,7 @@ class Data {
      * Get Database
      * 
      * @static
-     * @returns database
+     * @returns {Array} database
      * 
      * @memberOf Data
      */
@@ -45,7 +48,8 @@ class Data {
      * @memberOf Data
      */
     static addOneItem(object) {
-        database.data[object.id] = object;
+        database.data.push(object);
+        database.counter++;
     }
 
     /**
@@ -83,6 +87,18 @@ class Data {
     static reset() {
         database = { counter: 0, data: [] };
     }
+
+    /**
+     * Get Counter
+     * 
+     * @static
+     * @returns {number} Database Counter Status
+     * 
+     * @memberOf Data
+     */
+    static getCounter() {
+        return database.counter;
+    }
 }
 
 /**
@@ -100,7 +116,7 @@ class Tool {
      * @memberOf Tool
      */
     static uuid() {
-        return require("node-uuid").v1();
+        return require("uuid").v1();
     }
 }
 
@@ -116,8 +132,7 @@ class Rabbit {
      * @returns {void}
      * @memberOf Rabbit
      */
-    constructor() {
-        this.AMQP = require("amqplib");
+    constructor() { 
         this.AURI = process.env.AMQP_URI || "amqp://localhost";
         this.target = "in";
         this.listen = "out";
@@ -133,7 +148,7 @@ class Rabbit {
     writeMessage(msg) {
         const target = this.target;
         Data.addOneItem(msg);
-        this.AMQP.connect(this.AURI).then(function(conn) {
+        AMQP.connect(this.AURI).then(function(conn) {
             return conn.createChannel().then(function(ch) {
                 const q = ch.assertQueue(target);
                 return q.then(function() {
@@ -147,7 +162,7 @@ class Rabbit {
             });
         }).catch(console.warn);
     }
-
+    
     /**
      * message receiver
      * 
@@ -156,21 +171,17 @@ class Rabbit {
      */
     receiveMessage() {
         const listen = this.listen;
-        this.AMQP.connect(this.AURI).then(function(conn) {
+        AMQP.connect(this.AURI).then(function(conn) {
             process.once("SIGINT", function() {
                 conn.close();
             });
             return conn.createChannel().then(function(ch) {
-                let q = ch.assertQueue(listen);
-                q = q.then(function() {
+                ch.assertQueue(listen).then(function() {
                     ch.consume(listen, function(msg) {
                         let msgContent = JSON.parse(msg.content.toString());
                         console.log(" [*] RECV @ %s", msg.properties.correlationId.toString());
                         return Data.setResult(msgContent);
                     }, { noAck: true });
-                });
-                return q.then(function() {
-                    console.log(" [!] Waiting for messages via HTTP API @ Port %s. To exit press CTRL+C", port);
                 });
             });
         }).catch(console.warn);
@@ -191,10 +202,8 @@ class App {
      * @memberOf App
      */
     constructor(port) {
-        const express = require("express");
-        const bodyParser = require("body-parser");
-        this.app = express();
-        this.app.use(bodyParser.json());
+        this.app = Restify.createServer();
+        this.app.use(Restify.bodyParser({ mapParams: true }));
         this.app.listen(port);
     }
 
@@ -205,24 +214,30 @@ class App {
      * @memberOf App
      */
     start() {
+        console.log("%s listening at %s", this.app.name, this.app.url);
+
         const rabbit = new Rabbit();
         rabbit.receiveMessage();
-
+        
         /**
          * GET /clear
          * Empty the database.
          */
-        this.app.get("/clear", function(req, res) {
+        this.app.get("/clear", function(req, res, next) {
             Data.reset();
-            res.json(Data.db());
+            res.json(200, Data.db());
+
+            return next();
         });
 
         /**
          * GET /history
          * Get the list of jobs.
          */
-        this.app.get("/history", function(req, res) {
-            res.json(Data.db());
+        this.app.get("/history", function(req, res, next) {
+            res.json(200, Data.db());
+
+            return next();
         });
 
         /** 
@@ -230,8 +245,10 @@ class App {
          * Get the details of specific job 
          * @param {number} id The job seq
          */
-        this.app.get("/history/:id", function(req, res) {
-            res.json(Data.getOneItem(req.params.id));
+        this.app.get("/history/:id", function(req, res, next) {
+            res.json(200, Data.getOneItem(req.params.id));
+            
+            return next();
         });
 
         /**
@@ -240,17 +257,18 @@ class App {
          * @param {string} task The task
          * @param {string} payload The task payload
          */
-        this.app.post("/send", function(req, res) {
-            let task = req.body.task;
-            let payload = req.body.payload;
+        this.app.post("/send", function(req, res, next) {
+            let task = req.params.task;
+            let payload = req.params.payload;
             let message = { id: database.counter, task: task, payload: payload, uuid: Tool.uuid(), sent: false, result: {} };
 
-            res.json(message);
+            res.json(201, message);
             rabbit.writeMessage(message);
-            database.counter++;
+
+            return next();
         });
     }
 }
 
 const app = new App(port);
-app.start();
+app.start(); 

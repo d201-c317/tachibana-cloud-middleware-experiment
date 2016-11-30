@@ -71,3 +71,7 @@ __To specify an alternative port of the API, prepend environment variable like `
 ## TODO
 * jRuby Version? (Migrate to March Hare)
 * REST API Server in other programming language?
+
+## Documentations
+* [Node.js API](node/README.md)
+* [Ruby Processor](https://rawgit.com/jm1666/nowhere-cloud-middleware-experiment/master/ruby/doc/index.html)
