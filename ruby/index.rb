@@ -7,7 +7,6 @@ require "digest/md5"
 
 # Class: Rabbit
 # A class to maintain a list of function to communicate with RabbitMQ via Bunny gem. You Probably Don't wan't to touch this.
-
 class Rabbit
   # Initialize by start connection
   def initialize
@@ -49,7 +48,6 @@ end
 
 # Class: Tools
 # A Class To maintain a set of functions.
-
 class Tools
   # Generate Random Number
   def self.random
@@ -71,7 +69,6 @@ end
 
 # Class: Processor
 # The main work logic.
-
 class Processor
   # Process the Stuff.
   def self.process(message, msg_id)
@@ -85,8 +82,12 @@ class Processor
       payload = Tools.md5.hexdigest(parsed["payload"])
     when "rev"
       payload = Tools.reverse(parsed["payload"])
+    when "revhash"
+      payload = Tools.md5.hexdigest(Tools.reverse(parsed["payload"]))
+    when "hello"
+      payload = "hello world"
     else
-      Thread.exit
+      payload = ""
     end
     msg = JSON.generate(payload: payload, seq: parsed["id"], taskid: parsed["uuid"])
     rabbit.publish(msg, msg_id)
