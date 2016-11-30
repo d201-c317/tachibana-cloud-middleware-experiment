@@ -4,7 +4,7 @@ require "bunny"
 require "json"
 require "digest/md5"
 
-##
+
 # Class: Rabbit
 # A class to maintain a list of function to communicate with RabbitMQ via Bunny gem. You Probably Don't wan't to touch this.
 
@@ -46,7 +46,7 @@ class Rabbit
   end
 end
 
-# #
+
 # Class: Tools
 # A Class To maintain a set of functions.
 
@@ -68,7 +68,7 @@ class Tools
   end
 end
 
-##
+
 # Class: Processor
 # The main work logic.
 
