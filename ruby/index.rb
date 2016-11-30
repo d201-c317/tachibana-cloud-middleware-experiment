@@ -4,6 +4,8 @@ require "bunny"
 require "json"
 require "digest/md5"
 
+##
+# Class: Rabbit
 # A class to maintain a list of function to communicate with RabbitMQ via Bunny gem. You Probably Don't wan't to touch this.
 
 class Rabbit
@@ -45,6 +47,7 @@ class Rabbit
 end
 
 # #
+# Class: Tools
 # A Class To maintain a set of functions.
 
 class Tools
@@ -66,10 +69,10 @@ class Tools
 end
 
 ##
+# Class: Processor
 # The main work logic.
 
 class Processor
-
   # Process the Stuff.
   def self.process(message, msg_id)
     rabbit = Rabbit.new
@@ -88,7 +91,6 @@ class Processor
     msg = JSON.generate(payload: payload, seq: parsed["id"], taskid: parsed["uuid"])
     rabbit.publish(msg, msg_id)
   end
-
 end
 
 rabbit = Rabbit.new
