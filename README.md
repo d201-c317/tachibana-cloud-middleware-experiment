@@ -2,6 +2,8 @@
 ## 概念実証：バックエンド・ミドルウェアの設計
 ## 概念驗證：後端系統設計
 
+[ ![Codeship Status for jm1666/nowhere-cloud-middleware-experiment](https://codeship.com/projects/74a8ecd0-8cbf-0134-aa3c-3ecc7e716f4a/status?branch=master)](https://codeship.com/projects/184819)
+
 This Repository hosts two middleware component written in Ruby and Node.js.
 
 このリポジトリは、Node.jsとRubyでプログラムされた2ミドルウェアが含まれています。
