@@ -75,20 +75,20 @@ class Processor
     rabbit = Rabbit.new
     parsed = JSON.parse(message)
     puts " [x] Task : #{parsed['task']}"
-    case parsed["task"]
-    when "echo"
-      payload = parsed["payload"]
-    when "hash"
-      payload = Tools.md5.hexdigest(parsed["payload"])
-    when "rev"
-      payload = Tools.reverse(parsed["payload"])
-    when "revhash"
-      payload = Tools.md5.hexdigest(Tools.reverse(parsed["payload"]))
-    when "hello"
-      payload = "hello world"
-    else
-      payload = ""
-    end
+    payload << case parsed["task"]
+               when "echo"
+                 parsed["payload"]
+               when "hash"
+                 Tools.md5.hexdigest(parsed["payload"])
+               when "rev"
+                 Tools.reverse(parsed["payload"])
+               when "revhash"
+                 Tools.md5.hexdigest(Tools.reverse(parsed["payload"]))
+               when "hello"
+                 "hello world"
+               else
+                 ""
+               end
     msg = JSON.generate(payload: payload, seq: parsed["id"], taskid: parsed["uuid"])
     rabbit.publish(msg, msg_id)
   end
