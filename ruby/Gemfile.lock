@@ -5,8 +5,8 @@ GEM
     bunny (2.6.1)
       amq-protocol (>= 2.0.1)
     digest (0.0.1)
-    json (1.8.3)
-    json (1.8.3-java)
+    json (2.0.2)
+    json (2.0.2-java)
 
 PLATFORMS
   java
