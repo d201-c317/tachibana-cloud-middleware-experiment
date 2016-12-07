@@ -75,21 +75,19 @@ class Processor
     rabbit = Rabbit.new
     parsed = JSON.parse(message)
     puts " [x] Task : #{parsed['task']}"
-    payload << case parsed["task"]
-               when "echo"
-                 parsed["payload"]
-               when "hash"
-                 Tools.md5.hexdigest(parsed["payload"])
-               when "rev"
-                 Tools.reverse(parsed["payload"])
-               when "revhash"
-                 Tools.md5.hexdigest(Tools.reverse(parsed["payload"]))
-               when "hello"
-                 "hello world"
-               else
-                 ""
-               end
-    msg = JSON.generate(payload: payload, seq: parsed["id"], taskid: parsed["uuid"])
+    if parsed["task"] == "echo"
+      msg = JSON.generate(payload: parsed["payload"], seq: parsed["id"], taskid: parsed["uuid"])
+    elsif parsed["task"] == "hash"
+      msg = JSON.generate(payload: Tools.md5.hexdigest(parsed["payload"]), seq: parsed["id"], taskid: parsed["uuid"])
+    elsif parsed["task"] == "rev"
+      msg = JSON.generate(payload: Tools.reverse(parsed["payload"]), seq: parsed["id"], taskid: parsed["uuid"])
+    elsif parsed["task"] == "revhash"
+      msg = JSON.generate(payload: Tools.reverse(Tools.md5.hexdigest(parsed["payload"])), seq: parsed["id"], taskid: parsed["uuid"])
+    elsif parsed["task"] == "hello"
+      msg = JSON.generate(payload: "Hello World!", seq: parsed["id"], taskid: parsed["uuid"])
+    else
+      Thread.exit
+    end
     rabbit.publish(msg, msg_id)
   end
 end

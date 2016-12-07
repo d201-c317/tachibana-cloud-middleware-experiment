@@ -6,11 +6,11 @@ const AMQP = require("amqplib");
 const Restify = require("restify");
 
 var database = { counter: 0, data: [] };
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 
 /**
  * Database Emulation
- * 
+ *
  * @class Data
  */
 class Data {
@@ -116,7 +116,7 @@ class Tool {
      * @memberOf Tool
      */
     static uuid() {
-        return require("uuid").v1();
+        return require("uuid/v1")();
     }
 }
 
@@ -132,7 +132,7 @@ class Rabbit {
      * @returns {void}
      * @memberOf Rabbit
      */
-    constructor() { 
+    constructor() {
         this.AURI = process.env.AMQP_URI || "amqp://localhost";
         this.target = "in";
         this.listen = "out";
@@ -148,16 +148,16 @@ class Rabbit {
     writeMessage(msg) {
         const target = this.target;
         Data.addOneItem(msg);
-        AMQP.connect(this.AURI).then(function(conn) {
-            return conn.createChannel().then(function(ch) {
+        AMQP.connect(this.AURI).then((conn) => {
+            return conn.createChannel().then((ch) => {
                 const q = ch.assertQueue(target);
-                return q.then(function() {
+                return q.then(() => {
                     ch.sendToQueue(target, new Buffer.from(JSON.stringify(msg)), { correlationId: msg.uuid });
                     console.log(" [x] SENT @ %s", msg.uuid);
                     Data.setStatus(msg.id, true);
                     return ch.close();
                 });
-            }).finally(function() {
+            }).finally(() => {
                 conn.close();
             });
         }).catch(console.warn);
@@ -171,13 +171,13 @@ class Rabbit {
      */
     receiveMessage() {
         const listen = this.listen;
-        AMQP.connect(this.AURI).then(function(conn) {
-            process.once("SIGINT", function() {
+        AMQP.connect(this.AURI).then((conn) => {
+            process.once("SIGINT", () => {
                 conn.close();
             });
-            return conn.createChannel().then(function(ch) {
-                ch.assertQueue(listen).then(function() {
-                    ch.consume(listen, function(msg) {
+            return conn.createChannel().then((ch) => {
+                ch.assertQueue(listen).then(() => {
+                    ch.consume(listen, (msg) => {
                         let msgContent = JSON.parse(msg.content.toString());
                         console.log(" [*] RECV @ %s", msg.properties.correlationId.toString());
                         return Data.setResult(msgContent);
@@ -198,18 +198,19 @@ class App {
      * Creates an instance of API.
      * 
      * @param {number} port Port No.
-     * 
+     *
      * @memberOf App
      */
     constructor(port) {
         this.app = Restify.createServer();
+        this.app.pre(Restify.pre.userAgentConnection());
         this.app.use(Restify.bodyParser({ mapParams: true }));
         this.app.listen(port);
     }
 
     /**
      * Start the API
-     * 
+     *
      * 
      * @memberOf App
      */
@@ -218,12 +219,12 @@ class App {
 
         const rabbit = new Rabbit();
         rabbit.receiveMessage();
-        
+
         /**
          * GET /clear
          * Empty the database.
          */
-        this.app.get("/clear", function(req, res, next) {
+        this.app.get("/clear", (req, res, next) => {
             Data.reset();
             res.json(200, Data.db());
 
@@ -234,7 +235,7 @@ class App {
          * GET /history
          * Get the list of jobs.
          */
-        this.app.get("/history", function(req, res, next) {
+        this.app.get("/history", (req, res, next) => {
             res.json(200, Data.db());
 
             return next();
@@ -245,9 +246,9 @@ class App {
          * Get the details of specific job 
          * @param {number} id The job seq
          */
-        this.app.get("/history/:id", function(req, res, next) {
+        this.app.get("/history/:id", (req, res, next) => {
             res.json(200, Data.getOneItem(req.params.id));
-            
+
             return next();
         });
 
@@ -257,7 +258,7 @@ class App {
          * @param {string} task The task
          * @param {string} payload The task payload
          */
-        this.app.post("/send", function(req, res, next) {
+        this.app.post("/send", (req, res, next) => {
             let task = req.params.task;
             let payload = req.params.payload;
             let message = { id: database.counter, task: task, payload: payload, uuid: Tool.uuid(), sent: false, result: {} };
@@ -271,4 +272,4 @@ class App {
 }
 
 const app = new App(port);
-app.start(); 
+app.start();
