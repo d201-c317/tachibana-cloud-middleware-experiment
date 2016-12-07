@@ -148,21 +148,19 @@ class Rabbit {
     writeMessage(msg) {
         const target = this.target;
         Data.addOneItem(msg);
-        AMQP.connect(this.AURI).then((conn) => {
-            return conn.createChannel().then((ch) => {
-                const q = ch.assertQueue(target);
-                return q.then(() => {
-                    ch.sendToQueue(target, new Buffer.from(JSON.stringify(msg)), { correlationId: msg.uuid });
-                    console.log(" [x] SENT @ %s", msg.uuid);
-                    Data.setStatus(msg.id, true);
-                    return ch.close();
-                });
-            }).finally(() => {
-                conn.close();
+        AMQP.connect(this.AURI).then((conn) => conn.createChannel().then((ch) => {
+            const q = ch.assertQueue(target);
+            return q.then(() => {
+                ch.sendToQueue(target, new Buffer.from(JSON.stringify(msg)), { correlationId: msg.uuid });
+                console.log(" [x] SENT @ %s", msg.uuid);
+                Data.setStatus(msg.id, true);
+                return ch.close();
             });
-        }).catch(console.warn);
+        }).finally(() => {
+            conn.close();
+        })).catch(console.warn);
     }
-    
+
     /**
      * message receiver
      * 
