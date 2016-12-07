@@ -1,0 +1,9 @@
+body {
+  padding-top: 65px;
+}
+a {
+  color: #00b7ff;
+}
+pre.error-detail {
+  color: #fff;
+}

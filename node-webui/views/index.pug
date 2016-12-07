@@ -1,5 +1,52 @@
 extends layout
 
 block content
-  h1= title
-  p Welcome to #{title}
+  .row
+    .col-md-6
+      .card
+        .card-header
+          h4.card-title The Form.
+          p.card-text Should be easier than using a REST Client, right?
+        .card-block
+          form#send-form
+            .form-group
+              label(for="jobType") Job Type
+              select.form-control#jobType
+                option(value="echo") echo
+                option(value="hash") hash
+                option(value="rev") rev
+                option(value="revhash") revhash
+                option(value="hello") hello
+            .form-group
+              label(for="payload") Job Payload
+              input.form-control#jobPayload(type="text")
+            button.btn.btn-block.btn-primary#job-send(type="submit") Submit
+    .col-md-6
+      .card
+        .card-header
+          h4.card-title Result of Last 5 Requests.
+          p.card-text Refreshed every 5 seconds.
+        .table-responsive
+          table.table
+            thead
+              tr
+                th #
+                th Job
+                th Payload
+                th Result
+            tbody#result-body
+  .modal#response
+    .modal-dialog(role="document")
+      .modal-content
+        .modal-header
+          button.close(type="button", data-dismiss="modal", aria-label="Close")
+            span(aria-hidden="true")
+              | &times;
+          h4.modal-title Response
+        .modal-body
+          p Response From Server
+          pre#response-data
+        .modal-footer
+          button.btn.btn-block.btn-secondary(type="button", data-dismiss="modal") Close
+block scripts
+  script(src="javascripts/script-index.js")
