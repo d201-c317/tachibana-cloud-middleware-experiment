@@ -41,7 +41,7 @@ app.use((err, req, res, next) => {
     res.render("error", {
         title: "Express",
         message: err.message,
-        error: req.app.get("env") === "development" ? err : {} // set locals, only providing error in development 
+        error: req.app.get("env") === "development" ? err : {} // set locals, only providing error in development
     });
     next();
 });
