@@ -84,8 +84,7 @@ If you just be simple, use any REST Client, send a JSON, with following payload,
 
 ## Documentations
 * [Node.js API](node/README.md)
-* [Ruby Processor](https://rawgit.com/jm1666/nowhere-cloud-middleware-experiment/master/ruby/doc/index.html)
+* [Ruby Processor](https://rawgit.com/nowhere-cloud/middleware-experiment/master/ruby/doc/index.html)
 
 ### Footnote
-* All Chinese (Traditional Script) and Japanese descriptions in this document are Machine-Translated Results.
-While Japanese results are interpreted afterwards, quality of Chinese descriptions are not assured.
+* All Chinese (Traditional Script) and Japanese descriptions in this document are Machine-Translated Results. While Japanese results are interpreted afterwards, quality of Chinese descriptions are not assured.
