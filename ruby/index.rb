@@ -17,10 +17,19 @@ class Rabbit
 
   # Message Queue Listener and Job Dispatcher
   def listen
+    topic = @channel.topic("test")
+    queue_in = @channel.queue("")
+    queue_in.bind(topic, routing_key: "#")
+
     puts " [!] Waiting for messages. To exit press CTRL+C"
-    queue_in.subscribe(block: true) do |_, properties, body|
-      puts " [*] RECV @ #{properties.correlation_id}"
-      Thread.new { Processor.process(body, properties.correlation_id) }
+    begin
+      queue_in.subscribe(block: true) do |delivery_info, properties, body|
+        puts " [*] RECV @ #{properties.correlation_id}"
+        Thread.new { Processor.process(delivery_info.routing_key, body, properties.correlation_id) }
+      end
+    rescue Interrupt => _
+      @channel.close
+      @connection.close
     end
   end
 
@@ -33,11 +42,6 @@ class Rabbit
   end
 
   private
-
-  # Set up the incoming queue
-  def queue_in
-    @channel.queue("in", durable: true)
-  end
 
   # Set up the outgoing queue
   def queue_out
@@ -71,24 +75,25 @@ end
 # The main work logic.
 class Processor
   # Process the Stuff.
-  def self.process(message, msg_id)
+  def self.process(job_type, body, msg_id)
     rabbit = Rabbit.new
-    parsed = JSON.parse(message)
+    parsed = JSON.parse(body)
     puts " [x] Task : #{parsed['task']}"
-    if parsed["task"] == "echo"
-      msg = JSON.generate(payload: parsed["payload"], seq: parsed["id"], taskid: parsed["uuid"])
-    elsif parsed["task"] == "hash"
-      msg = JSON.generate(payload: Tools.md5.hexdigest(parsed["payload"]), seq: parsed["id"], taskid: parsed["uuid"])
-    elsif parsed["task"] == "rev"
-      msg = JSON.generate(payload: Tools.reverse(parsed["payload"]), seq: parsed["id"], taskid: parsed["uuid"])
-    elsif parsed["task"] == "revhash"
-      msg = JSON.generate(payload: Tools.reverse(Tools.md5.hexdigest(parsed["payload"])), seq: parsed["id"], taskid: parsed["uuid"])
-    elsif parsed["task"] == "hello"
-      msg = JSON.generate(payload: "Hello World!", seq: parsed["id"], taskid: parsed["uuid"])
-    else
-      Thread.exit
-    end
-    rabbit.publish(msg, msg_id)
+    msg = case job_type
+          when "echo"
+            { payload: parsed["payload"], seq: parsed["id"], taskid: parsed["uuid"] }
+          when "hash"
+            { payload: Tools.md5.hexdigest(parsed["payload"]), seq: parsed["id"], taskid: parsed["uuid"] }
+          when "rev"
+            { payload: Tools.reverse(parsed["payload"]), seq: parsed["id"], taskid: parsed["uuid"] }
+          when "revhash"
+            { payload: Tools.reverse(Tools.md5.hexdigest(parsed["payload"])), seq: parsed["id"], taskid: parsed["uuid"] }
+          when "hello"
+            { payload: "Hello World!", seq: parsed["id"], taskid: parsed["uuid"] }
+          else
+            { message: "Ouch", description: "Job is not defined." }
+          end
+    rabbit.publish(JSON.generate(msg), msg_id)
   end
 end
 

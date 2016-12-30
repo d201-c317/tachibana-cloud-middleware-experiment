@@ -16,10 +16,10 @@ const port = process.env.PORT || 3001;
 class Data {
     /**
      * Get Database
-     * 
+     *
      * @static
      * @returns {Array} database
-     * 
+     *
      * @memberOf Data
      */
     static db() {
@@ -28,11 +28,11 @@ class Data {
 
     /**
      * Get one item from database
-     * 
+     *
      * @static
      * @param {number} id job sequence
      * @returns database item
-     * 
+     *
      * @memberOf Data
      */
     static getOneItem(id) {
@@ -41,7 +41,7 @@ class Data {
 
     /**
      * Add one job to database
-     * 
+     *
      * @static
      * @param {any} object Job object
      * @returns {void}
@@ -54,10 +54,10 @@ class Data {
 
     /**
      * Store the result of the job.
-     * 
+     *
      * @static
      * @param {any} object Result object
-     * 
+     *
      * @memberOf Data
      */
     static setResult(object) {
@@ -66,7 +66,7 @@ class Data {
 
     /**
      * Set the delivery status of the item.
-     * 
+     *
      * @static
      * @param {number} id Job seq
      * @param {any} value Delivery status
@@ -79,7 +79,7 @@ class Data {
 
     /**
      * Clear the Database
-     * 
+     *
      * @static
      * @returns {void}
      * @memberOf Data
@@ -90,10 +90,10 @@ class Data {
 
     /**
      * Get Counter
-     * 
+     *
      * @static
      * @returns {number} Database Counter Status
-     * 
+     *
      * @memberOf Data
      */
     static getCounter() {
@@ -103,16 +103,16 @@ class Data {
 
 /**
  * Common Tools
- * 
+ *
  * @class Tool
  */
 class Tool {
     /**
      * UUID Generator
-     * 
+     *
      * @static
      * @returns {string} UUID
-     * 
+     *
      * @memberOf Tool
      */
     static uuid() {
@@ -122,25 +122,25 @@ class Tool {
 
 /**
  * AMQP Access
- * 
+ *
  * @class Rabbit
  */
 class Rabbit {
     /**
      * Creates an instance of Rabbit.
-     * 
+     *
      * @returns {void}
      * @memberOf Rabbit
      */
     constructor() {
         this.AURI = process.env.AMQP_URI || "amqp://localhost";
         this.target = "in";
-        this.listen = "out";
+        this.listen = "test";
     }
 
     /**
      * Publish message
-     * 
+     *
      * @param {any} msg message object
      * @returns {void}
      * @memberOf Rabbit
@@ -149,13 +149,10 @@ class Rabbit {
         const target = this.target;
         Data.addOneItem(msg);
         AMQP.connect(this.AURI).then((conn) => conn.createChannel().then((ch) => {
-            const q = ch.assertQueue(target);
-            return q.then(() => {
-                ch.sendToQueue(target, new Buffer.from(JSON.stringify(msg)), { correlationId: msg.uuid });
-                console.log(" [x] SENT @ %s", msg.uuid);
-                Data.setStatus(msg.id, true);
-                return ch.close();
-            });
+            ch.assertExchange(target, "topic", { durable: false });
+            ch.publish(target, msg.task, new Buffer.from(JSON.stringify(msg)), { correlationId: msg.uuid });
+            console.log(" [x] SENT @ %s", msg.uuid);
+            Data.setStatus(msg.id, true);
         }).finally(() => {
             conn.close();
         })).catch(console.warn);
@@ -163,7 +160,7 @@ class Rabbit {
 
     /**
      * message receiver
-     * 
+     *
      * @returns {void}
      * @memberOf Rabbit
      */
@@ -188,13 +185,13 @@ class Rabbit {
 
 /**
  * The API Core
- * 
+ *
  * @class App
  */
 class App {
     /**
      * Creates an instance of API.
-     * 
+     *
      * @param {number} port Port No.
      *
      * @memberOf App
@@ -209,7 +206,7 @@ class App {
     /**
      * Start the API
      *
-     * 
+     *
      * @memberOf App
      */
     start() {
@@ -239,9 +236,9 @@ class App {
             return next();
         });
 
-        /** 
+        /**
          * GET /history/:id
-         * Get the details of specific job 
+         * Get the details of specific job
          * @param {number} id The job seq
          */
         this.app.get("/history/:id", (req, res, next) => {
