@@ -2,7 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     amq-protocol (2.0.1)
-    bunny (2.6.1)
+    bunny (2.6.2)
       amq-protocol (>= 2.0.1)
     digest (0.0.1)
     json (2.0.2)
@@ -18,4 +18,4 @@ DEPENDENCIES
   json
 
 BUNDLED WITH
-   1.13.6
+   1.13.7

@@ -134,8 +134,8 @@ class Rabbit {
      */
     constructor() {
         this.AURI = process.env.AMQP_URI || "amqp://localhost";
-        this.target = "in";
-        this.listen = "test";
+        this.target = "test";
+        this.listen = "out";
     }
 
     /**
@@ -149,11 +149,14 @@ class Rabbit {
         const target = this.target;
         Data.addOneItem(msg);
         AMQP.connect(this.AURI).then((conn) => conn.createChannel().then((ch) => {
-            ch.assertExchange(target, "topic", { durable: false });
-            ch.publish(target, msg.task, new Buffer.from(JSON.stringify(msg)), { correlationId: msg.uuid });
-            console.log(" [x] SENT @ %s", msg.uuid);
-            Data.setStatus(msg.id, true);
+            var done = ch.assertExchange(target, "topic", { durable: false });
+            return done.then(() => {
+                ch.publish(target, msg.task, new Buffer.from(JSON.stringify(msg)), { correlationId: msg.uuid });
+                console.log(" [x] SENT @ %s", msg.uuid);
+                return ch.close();
+            });
         }).finally(() => {
+            Data.setStatus(msg.id, true);
             conn.close();
         })).catch(console.warn);
     }

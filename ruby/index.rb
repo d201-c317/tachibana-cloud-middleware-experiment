@@ -91,7 +91,7 @@ class Processor
           when "hello"
             { payload: "Hello World!", seq: parsed["id"], taskid: parsed["uuid"] }
           else
-            { message: "Ouch", description: "Job is not defined." }
+            { payload: { message: "Ouch", description: "Job is not defined." }, seq: parsed["id"], taskid: parsed["uuid"] }
           end
     rabbit.publish(JSON.generate(msg), msg_id)
   end
