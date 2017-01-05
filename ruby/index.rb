@@ -17,15 +17,11 @@ class Rabbit
 
   # Message Queue Listener and Job Dispatcher
   def listen
-    topic = @channel.topic("test")
-    queue_in = @channel.queue("")
-    queue_in.bind(topic, routing_key: "#")
-
     puts " [!] Waiting for messages. To exit press CTRL+C"
     begin
-      queue_in.subscribe(block: true) do |delivery_info, properties, body|
+      queue_in.subscribe(block: true) do |_, properties, body|
         puts " [*] RECV @ #{properties.correlation_id}"
-        Thread.new { Processor.process(delivery_info.routing_key, body, properties.correlation_id) }
+        Thread.new { Processor.process(body, properties.correlation_id) }
       end
     rescue Interrupt => _
       @channel.close
@@ -42,6 +38,11 @@ class Rabbit
   end
 
   private
+
+  # Set up the ingoing queue
+  def queue_in
+    @channel.queue("test", durable: true)
+  end
 
   # Set up the outgoing queue
   def queue_out
@@ -75,11 +76,11 @@ end
 # The main work logic.
 class Processor
   # Process the Stuff.
-  def self.process(job_type, body, msg_id)
+  def self.process(body, msg_id)
     rabbit = Rabbit.new
     parsed = JSON.parse(body)
     puts " [x] Task : #{parsed['task']}"
-    msg = case job_type
+    msg = case parsed["task"]
           when "echo"
             { payload: parsed["payload"], seq: parsed["id"], taskid: parsed["uuid"] }
           when "hash"
