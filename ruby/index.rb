@@ -80,20 +80,25 @@ class Processor
     rabbit = Rabbit.new
     parsed = JSON.parse(body)
     puts " [x] Task : #{parsed['task']}"
-    msg = case parsed["task"]
-          when "echo"
-            { payload: parsed["payload"], seq: parsed["id"], taskid: parsed["uuid"] }
-          when "hash"
-            { payload: Tools.md5.hexdigest(parsed["payload"]), seq: parsed["id"], taskid: parsed["uuid"] }
-          when "rev"
-            { payload: Tools.reverse(parsed["payload"]), seq: parsed["id"], taskid: parsed["uuid"] }
-          when "revhash"
-            { payload: Tools.reverse(Tools.md5.hexdigest(parsed["payload"])), seq: parsed["id"], taskid: parsed["uuid"] }
-          when "hello"
-            { payload: "Hello World!", seq: parsed["id"], taskid: parsed["uuid"] }
-          else
-            { payload: { message: "Ouch", description: "Job is not defined." }, seq: parsed["id"], taskid: parsed["uuid"] }
-          end
+    msg = {
+      payload: "",
+      seq: parsed["id"],
+      taskid: parsed["uuid"]
+    }
+    msg["payload"] = case parsed["task"]
+                     when "echo"
+                       parsed["payload"]
+                     when "hash"
+                       Tools.md5.hexdigest(parsed["payload"])
+                     when "rev"
+                       Tools.reverse(parsed["payload"])
+                     when "revhash"
+                       Tools.reverse(Tools.md5.hexdigest(parsed["payload"]))
+                     when "hello"
+                       "Hello World!"
+                     else
+                       { message: "Ouch", description: "Job is not defined." }
+                     end
     rabbit.publish(JSON.generate(msg), msg_id)
   end
 end
