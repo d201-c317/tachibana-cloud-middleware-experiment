@@ -70,9 +70,6 @@ If you just be simple, use any REST Client, send a JSON, with following payload,
 
 ![Screenshot](shot.png?raw=true "Screenshot")
 
-## License
-[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-
 ## Acknowledgements
 * Authors of RabbitMQ Tutorials
 * Developer of [amqplib](https://github.com/squaremo/amqp.node)
