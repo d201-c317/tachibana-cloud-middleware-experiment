@@ -1,12 +1,12 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    amq-protocol (2.0.1)
-    bunny (2.6.2)
+    amq-protocol (2.1.0)
+    bunny (2.6.3)
       amq-protocol (>= 2.0.1)
     digest (0.0.1)
-    json (2.0.2)
-    json (2.0.2-java)
+    json (2.0.3)
+    json (2.0.3-java)
 
 PLATFORMS
   java
@@ -18,4 +18,4 @@ DEPENDENCIES
   json
 
 BUNDLED WITH
-   1.13.7
+   1.14.4
